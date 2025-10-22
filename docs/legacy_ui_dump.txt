@@ -1,0 +1,313 @@
+import 'package:flutter/material.dart';
+import 'load_entry_screen.dart';
+
+void main() {
+  runApp(const MaxDemandCalculatorApp());
+}
+
+class MaxDemandCalculatorApp extends StatelessWidget {
+  const MaxDemandCalculatorApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Maximum Demand Calculator',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+      ),
+      home: const LoadEntryScreen(),
+    );
+  }
+}
+
+/*
+          return _DialogAction.showFGroupMotors;
+    }
+
+  if (isC2 &&
+    _selectedLoadType == 'D: Motors' &&
+        _selectedLoadSubOption == 'Motors other than in E and F below') {
+      return _DialogAction.showC2Motors;
+    }
+    if ((_selectedLoadType == 'G: Spa and swimming pool heaters' &&
+            _selectedLoadSubOption == 'Spa and swimming pool heaters') ||
+        (_selectedLoadType == 'J: Heating and AC' &&
+            _selectedLoadSubOption == 'iii) Spa and swimming pool heaters')) {
+      return _DialogAction.showSpaPool;
+    }
+    if ((isC1 &&
+            (isSingle || isBlocks) &&
+            _selectedLoadType == 'K: Lifts' &&
+            _selectedLoadSubOption == 'Lifts') ||
+        (isC2 &&
+            (isHotels || isFactories) &&
+            _selectedLoadType == 'E: Lifts' &&
+            _selectedLoadSubOption == 'Lifts')) {
+      return _DialogAction.showLift;
+    }
+    if (isC2 &&
+        isHotels &&
+        _selectedLoadType == 'D: Motors' &&
+        _selectedLoadSubOption == 'Motors other than in E and F below') {
+      return _DialogAction.showC2ResidentialMotors;
+    }
+    
+    if (isC1 &&
+        (isSingle || isBlocks) &&
+        _selectedLoadType == 'L: Motors' &&
+        _selectedLoadSubOption == 'Motors') {
+      return _DialogAction.showMotor;
+    }
+    if (isC1 &&
+        isSingle &&
+        _selectedLoadType == 'M: Appliances' &&
+        _selectedLoadSubOption != null &&
+        _selectedLoadSubOption!.contains('Appliances')) {
+      return _DialogAction.showApplianceSingle;
+    }
+    if (isC1 &&
+        isBlocks &&
+        _selectedLoadType == 'M: Appliances' &&
+        _selectedLoadSubOption != null &&
+        _selectedLoadSubOption!.contains('Appliances')) {
+      return _DialogAction.showApplianceBlocks;
+    }
+    if (isC2 &&
+        (isFactories || isHotels) &&
+        _selectedLoadType == 'B: Socket-outlets' &&
+        _selectedLoadSubOption == 'iii) Socket-outlets exceeding 10 A c,e') {
+      return _DialogAction.showSocketExceeding10A;
+    }
+    return _DialogAction.none;
+  }
+
+  // ------------ Dialogs moved inside state ------------
+  Future<void> _showC2CookingApplianceDialog(int phase, {bool isFactoryMotors = false}) async {
+    final controllers = _dialogControllers[phase]!;
+    final highestRatedController =
+        controllers['highest'] as TextEditingController;
+    final additionalCountController =
+        controllers['count'] as TextEditingController;
+    final List<TextEditingController> additionalItemControllers =
+        List<TextEditingController>.from(
+          controllers['additional'] as List<TextEditingController>,
+        );
+
+    double? result;
+
+    await showDialog<double>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            int count = int.tryParse(additionalCountController.text) ?? 0;
+            if (count < 0) count = 0;
+            if (count != additionalItemControllers.length) {
+              if (count > additionalItemControllers.length) {
+                for (int i = additionalItemControllers.length; i < count; i++) {
+                  additionalItemControllers.add(TextEditingController());
+                }
+              } else {
+                for (
+                  int i = additionalItemControllers.length - 1;
+                  i >= count;
+                  i--
+                ) {
+                  additionalItemControllers[i].dispose();
+                }
+                additionalItemControllers.removeRange(
+                  count,
+                  additionalItemControllers.length,
+                );
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Appliances for cooking, heating and cooling'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Enter the highest rated item and any additional items.',
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: highestRatedController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Highest Rated (Amps)',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: additionalCountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Additional Items',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    for (int i = 0; i < additionalItemControllers.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: TextField(
+                          controller: additionalItemControllers[i],
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Item ${i + 1} Amps',
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final highest =
+                        double.tryParse(highestRatedController.text) ?? 0.0;
+                    double sum = highest;
+                    final List<double> additionalValues = [];
+                    
+                    // Collect all additional values
+                    for (final ctrl in additionalItemControllers) {
+                      final v = double.tryParse(ctrl.text) ?? 0.0;
+                      additionalValues.add(v);
+                    }
+
+                    if (isFactoryMotors) {
+                      // Factory motors calculation: 100% highest + 75% second highest + 50% remainder
+                      additionalValues.sort((a, b) => b.compareTo(a));
+                      if (additionalValues.isNotEmpty) {
+                        sum += additionalValues[0] * 0.75;  // 75% of second highest
+                        for (int i = 1; i < additionalValues.length; i++) {
+                          sum += additionalValues[i] * 0.5;  // 50% of remainder
+                        }
+                      }
+                    } else {
+                      // Check if this is the factories pathway for cooking appliances
+                      final bool isFactoriesCooking = 
+                          _selectedInstallationType == 'C2' &&
+                          _selectedSubCategory == 'Factories, shops, stores, offices, schools, churches' &&
+                          _selectedLoadType == 'C: Appliances for cooking, heating and cooling';
+
+                      if (isFactoriesCooking) {
+                        // Factories cooking calculation: 100% highest + 75% of all additional
+                        for (final v in additionalValues) {
+                          sum += v * 0.75;
+                        }
+                      } else {
+                        // Residential calculation: 100% highest + 50% of all additional
+                        for (final v in additionalValues) {
+                          sum += v * 0.5;
+                        }
+                      }
+                    }
+
+                    // Persist into persistent controllers instead of reassigning them
+                    final persistent = _dialogControllers[phase]!;
+                    final persistentHighest =
+                        persistent['highest'] as TextEditingController;
+                    final persistentCount =
+                        persistent['count'] as TextEditingController;
+                    final persistentAdditional =
+                        persistent['additional'] as List<TextEditingController>;
+
+                    final desiredCount = additionalItemControllers.length;
+                    if (persistentAdditional.length > desiredCount) {
+                      for (
+                        int i = desiredCount;
+                        i < persistentAdditional.length;
+                        i++
+                      ) {
+                        persistentAdditional[i].dispose();
+                      }
+                      persistentAdditional.removeRange(
+                        desiredCount,
+                        persistentAdditional.length,
+                      );
+                    } else if (persistentAdditional.length < desiredCount) {
+                      for (
+                        int i = persistentAdditional.length;
+                        i < desiredCount;
+                        i++
+                      ) {
+                        persistentAdditional.add(TextEditingController());
+                      }
+                    }
+
+                    persistentHighest.text = highestRatedController.text;
+                    persistentCount.text = additionalCountController.text;
+                    for (int i = 0; i < desiredCount; i++) {
+                      persistentAdditional[i].text =
+                          additionalItemControllers[i].text;
+                    }
+                    _dialogControllers[phase]!['additional'] =
+                        List<TextEditingController>.from(persistentAdditional);
+
+                    // --- Store MotorConfig for both factory and residential motors ---
+                    final bool isMotorsDialog =
+                        (_selectedInstallationType == 'C2' &&
+                        _selectedLoadType == 'D: Motors' &&
+                        _selectedLoadSubOption ==
+                            'Motors other than in E and F below' &&
+                        (_selectedSubCategory ==
+                            'Residential institutes, hotels, boarding houses, hospitals, motels' ||
+                         _selectedSubCategory ==
+                            'Factories, shops, stores, offices, schools, churches'));
+
+                    if (isMotorsDialog || isFactoryMotors) {
+                      // For factory motors, we need to ensure the additional values are sorted
+                      if (isFactoryMotors) {
+                        additionalValues.sort((a, b) => b.compareTo(a));
+                      }
+                      
+                      // Create MotorConfig with largest as 'highest' and additional as list of additionalValues
+                      _motorConfigs[phase] = MotorConfig(
+                        largestMotorAmps: highest,
+                        additionalMotorAmps: additionalValues,
+                      );
+
+                      // Update both phase controller and result controller
+                      final formatted = sum.toStringAsFixed(2);
+                      int phaseIndex = phase - 1;
+                      _phaseControllers[phaseIndex].text = formatted;
+                      _resultPhaseControllers[phaseIndex].text = formatted;
+                    }
+
+                    Navigator.of(context).pop(sum);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((val) {
+      result = val;
+    });
+
+    if (result != null) {
+      _removeDemandListeners();
+      setState(() {
+        final formatted = result!.toStringAsFixed(2);
+        final phaseIndex = phase - 1;
+        _resultPhaseControllers[phaseIndex].text = formatted;
+        _phaseControllers[phaseIndex].text = formatted;
+      });
+      _addDemandListeners();
+      _calculateDemand();
+    }
+  }
+
+  ... (content truncated) ...
+*/
