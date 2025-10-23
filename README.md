@@ -2,6 +2,8 @@
 
 Primary app location: `fresh_app/`
 
+Live site: https://sterac77-sudo.github.io/max-demand/
+
 This repository contains a clean Flutter app under `fresh_app/` that is the primary project moving forward. Older files at the repository root are retained temporarily for reference.
 
 ## Run locally
