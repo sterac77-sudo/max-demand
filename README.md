@@ -37,3 +37,12 @@ GitHub Actions builds the web app from `fresh_app/` and deploys to GitHub Pages 
 - The web PDF includes a footer: "Powered by Seaspray Electrical".
 - Load group C2:M has been removed (only available under C1:M).
 - Once you're comfortable with the new app, consider removing legacy Flutter files at the repo root to reduce confusion.
+
+## Optional analytics (web)
+
+Basic, privacy-friendly web analytics can be enabled without code changes:
+
+- Plausible: open `fresh_app/web/index.html`, find the commented snippet
+	`plausible.io/js/script.js`, set `data-domain` to your Pages domain (e.g., `sterac77-sudo.github.io`), and uncomment it.
+- The app will automatically send a custom event `export_pdf` when users export.
+- If you prefer Firebase Analytics or Umami, we can wire those later.

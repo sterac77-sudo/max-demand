@@ -8,6 +8,7 @@ import 'lift_motor_dialog.dart';
 import 'spa_pool_dialog.dart';
 import 'appliance_dialog.dart';
 import 'socket_outlet_dialog.dart';
+import 'analytics.dart';
 
 // Private enum for UI action routing (top-level)
 enum _DialogAction {
@@ -1322,6 +1323,8 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   }
 
   Future<void> _exportToPdf() async {
+    // Track export action (web only; no-op if analytics not configured)
+    Analytics.event('export_pdf');
     // Build a PDF report from current load entries and totals
     final doc = pw.Document();
 
