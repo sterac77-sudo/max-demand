@@ -34,6 +34,18 @@
 
   <title>fresh_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Simple pageview counter (CountAPI) -->
+  <script>
+    (function () {
+      try {
+        fetch('https://api.countapi.xyz/hit/sterac77-sudo.github.io/max-demand')
+          .then(function(r){ return r.json(); })
+          .then(function(d){ console.log('Pageviews:', d.value); })
+          .catch(function(){});
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
