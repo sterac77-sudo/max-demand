@@ -32,6 +32,16 @@ flutter test
 
 GitHub Actions builds the web app from `fresh_app/` and deploys to GitHub Pages on pushes to `main`. The workflow is in `.github/workflows/deploy-pages.yml` and publishes `fresh_app/build/web`.
 
+## SEO & Sitemaps
+
+- **Sitemap location**: `fresh_app/web/sitemap.xml` (and alternate `sitemap-20251024.xml`)
+- **robots.txt**: Lists both sitemap URLs; deployed to the web root
+- **Google Search Console**:
+  - Submit sitemaps in the URL-prefix property: `https://sterac77-sudo.github.io/max-demand/` (with trailing slash)
+  - Use **URL Inspection** → "Test Live URL" → "Request Indexing" for key pages
+  - The old Google sitemap ping endpoint is deprecated (returns 404); rely on normal crawling and lastmod timestamps
+- **Metadata**: Canonical, og:url, and description tags are in `fresh_app/web/index.html`
+
 ## Notes
 
 - The web PDF includes a footer: "Powered by Seaspray Electrical".
