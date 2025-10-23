@@ -1,16 +1,37 @@
-# max_demand_calculator
+# Max Demand Calculator
 
-A new Flutter project.
+Primary app location: `fresh_app/`
 
-## Getting Started
+This repository contains a clean Flutter app under `fresh_app/` that is the primary project moving forward. Older files at the repository root are retained temporarily for reference.
 
-This project is a starting point for a Flutter application.
+## Run locally
 
-A few resources to get you started if this is your first Flutter project:
+From a terminal in VS Code or PowerShell on Windows:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```powershell
+cd C:\Users\steve\OneDrive\max_demand_calculator\fresh_app
+flutter run -d chrome   # or: flutter run -d windows
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+List available devices:
+
+```powershell
+flutter devices
+```
+
+Run tests:
+
+```powershell
+cd C:\Users\steve\OneDrive\max_demand_calculator\fresh_app
+flutter test
+```
+
+## Web deployment (GitHub Pages)
+
+GitHub Actions builds the web app from `fresh_app/` and deploys to GitHub Pages on pushes to `main`. The workflow is in `.github/workflows/deploy-pages.yml` and publishes `fresh_app/build/web`.
+
+## Notes
+
+- The web PDF includes a footer: "Powered by Seaspray Electrical".
+- Load group C2:M has been removed (only available under C1:M).
+- Once you're comfortable with the new app, consider removing legacy Flutter files at the repo root to reduce confusion.

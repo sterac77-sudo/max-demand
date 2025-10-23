@@ -22,15 +22,18 @@ jobs:
 
       - name: Enable Flutter Web
         run: flutter config --enable-web
+        working-directory: fresh_app
 
       - name: Install dependencies
         run: flutter pub get
+        working-directory: fresh_app
 
       - name: Build web (with base href)
         run: flutter build web --release --base-href /${{ github.event.repository.name }}/
+        working-directory: fresh_app
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
+          publish_dir: ./fresh_app/build/web
