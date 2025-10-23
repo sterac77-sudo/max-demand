@@ -1320,6 +1320,8 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   void initState() {
     super.initState();
     _addDemandListeners();
+    // Fire a lightweight session event on app open (web only; no-op elsewhere)
+    Analytics.event('app_open');
   }
 
   Future<void> _exportToPdf() async {
