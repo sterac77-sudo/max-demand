@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sterac77-sudo.github.io/max-demand/sitemap.xml
