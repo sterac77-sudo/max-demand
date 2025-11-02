@@ -1,0 +1,9 @@
+# Copy this file to fresh_app/android/key.properties and fill in values.
+# Keep your real key.properties OUT of git (it's ignored in .gitignore).
+
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=upload
+# Use a relative path from the project root (recommended):
+# storeFile=fresh_app/android/upload-keystore.jks
+storeFile=PATH_TO_YOUR_JKS_FILE
