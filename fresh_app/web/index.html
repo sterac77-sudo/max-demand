@@ -73,6 +73,27 @@
   </script>
 </head>
 <body>
+  <!-- Short, indexable intro shown before Flutter boots; hidden after first frame -->
+  <div id="app-intro" class="app-intro" style="font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; color:#333; margin:12px;">
+    Maximum demand calculator for domestic and non‑domestic loads in conjunction with AS/NZS 3000 for Australia and New Zealand.
+  </div>
+
+  <noscript>
+    <p class="app-intro" style="font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; color:#333; margin:12px;">
+      Maximum demand calculator for domestic and non‑domestic loads in conjunction with AS/NZS 3000 for Australia and New Zealand.
+    </p>
+    <p style="font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; color:#555; margin:12px;">
+      Please enable JavaScript to use the calculator.
+    </p>
+  </noscript>
+
+  <script>
+    // Hide the intro once Flutter paints the first frame
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('app-intro');
+      if (el) { el.remove(); }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
