@@ -1,7 +1,7 @@
 name: fresh_app
-description: "A new Flutter project."
+description: "Max Demand Calculator – compute electrical maximum demand (C1/C2) and export a PDF report."
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0+1
 
 environment:
   sdk: ^3.9.0
@@ -17,6 +17,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "web/icons/Icon-512.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "web/icons/Icon-512.png"
 
 flutter:
   uses-material-design: true
