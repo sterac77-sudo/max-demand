@@ -1,4 +1,4 @@
-package com.example.fresh_app
+package au.co.seaspray.maxdemand
 
 import io.flutter.embedding.android.FlutterActivity
 
