@@ -18,13 +18,18 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Max Demand Calculator for electrical installations (C1/C2). Enter loads, compute per-phase totals, and export a professional PDF report. Built by Seaspray Electrical.">
+  <meta name="description" content="Electrical maximum demand calculator (C1/C2). Enter loads, compute per-phase totals for single/three‑phase, and export a professional PDF report. Free online by Seaspray Electrical.">
   <link rel="canonical" href="https://sterac77-sudo.github.io/max-demand/">
   <meta name="robots" content="index,follow">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Max Demand Calculator – Seaspray Electrical">
-  <meta property="og:description" content="Calculate maximum demand (C1/C2), then export a PDF report. Free to use online.">
+  <meta property="og:description" content="Calculate electrical maximum demand (C1/C2), then export a PDF report. Free to use online.">
   <meta property="og:url" content="https://sterac77-sudo.github.io/max-demand/">
+  <!-- Twitter cards -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Max Demand Calculator – Seaspray Electrical">
+  <meta name="twitter:description" content="Electrical maximum demand calculator (C1/C2) with PDF export. Free online.">
+  <meta name="twitter:image" content="https://sterac77-sudo.github.io/max-demand/icons/Icon-512.png">
 
   <!-- Plausible analytics (generic snippet to satisfy onboarding detector) -->
   <script defer data-domain="sterac77-sudo.github.io" data-spa="auto" src="https://plausible.io/js/script.js"></script>
@@ -40,6 +45,20 @@
 
   <title>Max Demand Calculator</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Structured data: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Max Demand Calculator",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "url": "https://sterac77-sudo.github.io/max-demand/",
+    "publisher": { "@type": "Organization", "name": "Seaspray Electrical" }
+  }
+  </script>
 
   <!-- Simple pageview counter (CountAPI) -->
   <script>
