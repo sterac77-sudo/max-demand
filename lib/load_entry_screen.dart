@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'phase_input_field.dart';
 import 'motor_dialog.dart';
 import 'lift_motor_dialog.dart';
@@ -48,6 +49,11 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   // C2 → B(i): volts prompt storage per phase
   final List<double?> _c2B1VoltsPerPhase = List<double?>.filled(3, null);
   final List<bool> _c2B1VoltsAskedPerPhase = List<bool>.filled(3, false);
+
+  // AdMob ads
+  BannerAd? _bannerAd;
+  InterstitialAd? _interstitialAd;
+  bool _isBannerAdReady = false;
 
   // Menus: Installation type and sub-categories (simplified restore)
   final List<String> _installationTypes = const ['C1', 'C2'];
@@ -168,7 +174,9 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
       }
 
       if (t == 'D: Motors') return _DialogAction.showMotor;
+      if (t == 'L: Motors') return _DialogAction.showMotor;
       if (t == 'E: Lifts') return _DialogAction.showLift;
+      if (t == 'K: Lifts') return _DialogAction.showLift;
       if (t == 'G: Pools etc') return _DialogAction.showSpaPool;
       if (t == 'G: Spa and swimming pool heaters') {
         return _DialogAction.showSpaPool;
@@ -597,21 +605,7 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _removeDemandListeners();
-    _diversityController.dispose();
-    _companyController.dispose();
-    _siteAddressController.dispose();
-    _projectNumberController.dispose();
-    for (var controller in _phaseControllers) {
-      controller.dispose();
-    }
-    for (var controller in _resultPhaseControllers) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
+  // Dispose handles are consolidated in the ad-aware dispose below
 
   void _calculateDemand() {
     final diversity = double.tryParse(_diversityController.text) ?? 1.0;
@@ -1320,9 +1314,72 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   void initState() {
     super.initState();
     _addDemandListeners();
+    _loadBannerAd();
+    _loadInterstitialAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId:
+          'ca-app-pub-2318170293675282/3862942162', // Real banner ad unit ID
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isBannerAdReady = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId:
+          'ca-app-pub-2318170293675282/3594800110', // Real interstitial ad unit ID
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+        },
+        onAdFailedToLoad: (error) {
+          _interstitialAd = null;
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _removeDemandListeners();
+    _diversityController.dispose();
+    _companyController.dispose();
+    _siteAddressController.dispose();
+    _projectNumberController.dispose();
+    for (var controller in _phaseControllers) {
+      controller.dispose();
+    }
+    for (var controller in _resultPhaseControllers) {
+      controller.dispose();
+    }
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
+    super.dispose();
   }
 
   Future<void> _exportToPdf() async {
+    // Show interstitial ad before exporting PDF
+    if (_interstitialAd != null) {
+      await _interstitialAd!.show();
+      _interstitialAd = null;
+      // Reload the ad for next time
+      _loadInterstitialAd();
+    }
+
     // Build a PDF report from current load entries and totals
     final doc = pw.Document();
 
@@ -1397,6 +1454,14 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
                       )
                       .toList(),
                   cellAlignment: pw.Alignment.centerLeft,
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(2),
+                    1: const pw.FlexColumnWidth(1.5),
+                    2: const pw.FlexColumnWidth(2),
+                    3: const pw.FlexColumnWidth(1),
+                    4: const pw.FlexColumnWidth(1),
+                    5: const pw.FlexColumnWidth(1),
+                  },
                 ),
 
               pw.SizedBox(height: 12),
@@ -1433,577 +1498,648 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Text(
-              'Maximum Demand',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'Seaspray Electrical',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-            ),
-          ],
-        ),
-        elevation: 2,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D1B2A), Color(0xFF1B263B)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        backgroundColor: const Color(0xFF00B4D8),
+        elevation: 4,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                'Maximum Demand',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Seaspray Electrical',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFFE0FBFC),
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
           ),
         ),
-        child: CustomPaint(
-          painter: _LightningPainter(),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Project Details card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Project Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _companyController,
-                            decoration: const InputDecoration(
-                              labelText: 'Company Name',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _siteAddressController,
-                            decoration: const InputDecoration(
-                              labelText: 'Site Address',
-                              border: OutlineInputBorder(),
-                            ),
-                            minLines: 1,
-                            maxLines: 3,
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _projectNumberController,
-                            decoration: const InputDecoration(
-                              labelText: 'Project Number',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Load details card with menus
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Load Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          // Installation type (C1/C2)
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedInstallationType,
-                            decoration: const InputDecoration(
-                              labelText: 'Installation Type',
-                              border: OutlineInputBorder(),
-                            ),
-                            hint: const Text('Select installation type'),
-                            items: _installationTypes
-                                .map(
-                                  (t) => DropdownMenuItem(
-                                    value: t,
-                                    child: Text(t),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _selectedInstallationType = val;
-                                _selectedSubCategory = null;
-                                _selectedBlockOption = null;
-                                _selectedLoadType = null;
-                                _selectedLoadSubOption = null;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          // Sub category
-                          if (_selectedInstallationType != null)
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedSubCategory,
-                              decoration: const InputDecoration(
-                                labelText: 'Sub Category',
-                                border: OutlineInputBorder(),
-                              ),
-                              hint: const Text('Select sub category'),
-                              items:
-                                  (_subCategories[_selectedInstallationType] ??
-                                          [])
-                                      .map(
-                                        (s) => DropdownMenuItem(
-                                          value: s,
-                                          child: Text(s),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedSubCategory = val;
-                                  _selectedBlockOption = null;
-                                  _selectedLoadType = null;
-                                  _selectedLoadSubOption = null;
-                                });
-                              },
-                            ),
-                          const SizedBox(height: 12),
-                          // Block option only when C1 → Blocks of living units
-                          if (_selectedSubCategory == 'Blocks of living units')
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedBlockOption,
-                              decoration: const InputDecoration(
-                                labelText: 'Block Option',
-                                border: OutlineInputBorder(),
-                              ),
-                              hint: const Text('Select block option'),
-                              items: _blockOptions
-                                  .map(
-                                    (s) => DropdownMenuItem(
-                                      value: s,
-                                      child: Text(s),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedBlockOption = val;
-                                });
-                              },
-                            ),
-                          const SizedBox(height: 12),
-                          // Load group (depends on installation type)
-                          if (_selectedInstallationType != null)
-                            DropdownButtonFormField<String>(
-                              initialValue: _selectedLoadType,
-                              decoration: const InputDecoration(
-                                labelText: 'Load Group',
-                                border: OutlineInputBorder(),
-                              ),
-                              hint: const Text('Select load group'),
-                              items:
-                                  (_loadTypes[_selectedInstallationType] ?? {})
-                                      .keys
-                                      .map(
-                                        (k) => DropdownMenuItem(
-                                          value: k,
-                                          child: Text(k),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedLoadType = val;
-                                  _selectedLoadSubOption = null;
-                                });
-                              },
-                            ),
-                          const SizedBox(height: 12),
-                          // Load sub-option
-                          if (_selectedLoadType != null)
-                            DropdownButtonFormField<String>(
-                              isExpanded: true,
-                              initialValue: _selectedLoadSubOption,
-                              decoration: const InputDecoration(
-                                labelText: 'Load Sub-option',
-                                border: OutlineInputBorder(),
-                              ),
-                              hint: const Text('Select sub option'),
-                              items:
-                                  ((_loadTypes[_selectedInstallationType] ??
-                                              {})[_selectedLoadType] ??
-                                          [])
-                                      .map(
-                                        (s) => DropdownMenuItem(
-                                          value: s,
-                                          child: Text(s),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedLoadSubOption = val;
-                                });
-                                // Show info popup for C2 → H on selection
-                                if (_selectedInstallationType == 'C2' &&
-                                    _selectedLoadType ==
-                                        'H: Welding machines' &&
-                                    _selectedLoadSubOption != null) {
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
-                                    showDialog<void>(
-                                      context: context,
-                                      builder: (_) => const AlertDialog(
-                                        title: Text('Information'),
-                                        content: Text(
-                                          'Refer to paragraph C2 5.2',
-                                        ),
-                                      ),
-                                    );
-                                  });
-                                }
-                              },
-                            ),
-                          // Removed sub-option helper text under the load sub group box per request
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _diversityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Diversity Factor',
-                      hintText: 'e.g. 0.8',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Phase Current Values (A)',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF00B4D8),
+                    Color(0xFF0077B6),
+                    Color(0xFF1B263B),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Project Details card
+                      Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              PhaseInputField(
-                                controller: _phaseControllers[0],
-                                phaseNumber: 1,
-                                phaseLabel: _phaseLabelText(1),
-                                readOnly:
-                                    (_actionForSelection() !=
-                                            _DialogAction.none &&
-                                        _actionForSelection() !=
-                                            _DialogAction.showInfoOnly) ||
-                                    _isBlocksALightsNoAssessment(),
-                                onTap:
-                                    _actionForSelection() ==
-                                        _DialogAction.showInfoOnly
-                                    ? () => _onPhaseTap(1)
-                                    : (_actionForSelection() !=
-                                              _DialogAction.none
-                                          ? () => _onPhaseTap(1)
-                                          : null),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Project Details',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0077B6),
+                                  ),
+                                ),
                               ),
-                              const SizedBox(width: 16),
-                              PhaseInputField(
-                                controller: _phaseControllers[1],
-                                phaseNumber: 2,
-                                phaseLabel: _phaseLabelText(2),
-                                readOnly:
-                                    (_actionForSelection() !=
-                                            _DialogAction.none &&
-                                        _actionForSelection() !=
-                                            _DialogAction.showInfoOnly) ||
-                                    _isBlocksALightsNoAssessment(),
-                                onTap:
-                                    _actionForSelection() ==
-                                        _DialogAction.showInfoOnly
-                                    ? () => _onPhaseTap(2)
-                                    : (_actionForSelection() !=
-                                              _DialogAction.none
-                                          ? () => _onPhaseTap(2)
-                                          : null),
+                              const SizedBox(height: 18),
+                              TextFormField(
+                                controller: _companyController,
+                                style: const TextStyle(fontSize: 16),
+                                decoration: InputDecoration(
+                                  labelText: 'Company Name',
+                                  prefixIcon: Icon(
+                                    Icons.business,
+                                    color: Color(0xFF00B4D8),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
                               ),
-                              const SizedBox(width: 16),
-                              PhaseInputField(
-                                controller: _phaseControllers[2],
-                                phaseNumber: 3,
-                                phaseLabel: _phaseLabelText(3),
-                                readOnly:
-                                    (_actionForSelection() !=
-                                            _DialogAction.none &&
-                                        _actionForSelection() !=
-                                            _DialogAction.showInfoOnly) ||
-                                    _isBlocksALightsNoAssessment(),
-                                onTap:
-                                    _actionForSelection() ==
-                                        _DialogAction.showInfoOnly
-                                    ? () => _onPhaseTap(3)
-                                    : (_actionForSelection() !=
-                                              _DialogAction.none
-                                          ? () => _onPhaseTap(3)
-                                          : null),
+                              const SizedBox(height: 14),
+                              TextFormField(
+                                controller: _siteAddressController,
+                                style: const TextStyle(fontSize: 16),
+                                decoration: InputDecoration(
+                                  labelText: 'Site Address',
+                                  prefixIcon: Icon(
+                                    Icons.location_on,
+                                    color: Color(0xFF00B4D8),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextFormField(
+                                controller: _projectNumberController,
+                                style: const TextStyle(fontSize: 16),
+                                decoration: InputDecoration(
+                                  labelText: 'Project Number',
+                                  prefixIcon: Icon(
+                                    Icons.confirmation_number,
+                                    color: Color(0xFF00B4D8),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          if (_isSingleDomesticBPoints()) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Points-based rule: 10 A for 1–20 points; +5 A per additional 20 points or part thereof.',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: Colors.black54),
-                            ),
-                            const SizedBox(height: 4),
-                            Builder(
-                              builder: (context) {
-                                final p1 =
-                                    int.tryParse(_phaseControllers[0].text) ??
-                                    0;
-                                final p2 =
-                                    int.tryParse(_phaseControllers[1].text) ??
-                                    0;
-                                final p3 =
-                                    int.tryParse(_phaseControllers[2].text) ??
-                                    0;
-                                return Text(
-                                  'Preview — P1: ${_bPointsPreview(p1)} • P2: ${_bPointsPreview(p2)} • P3: ${_bPointsPreview(p3)}',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Load details card with menus
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Text(
+                                'Load Details',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // Installation type (C1/C2)
+                              DropdownButtonFormField<String>(
+                                initialValue: _selectedInstallationType,
+                                decoration: const InputDecoration(
+                                  labelText: 'Installation Type',
+                                  border: OutlineInputBorder(),
+                                ),
+                                hint: const Text('Select installation type'),
+                                items: _installationTypes
+                                    .map(
+                                      (t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text(
+                                          t == 'C1'
+                                              ? 'C1 (Domestic)'
+                                              : t == 'C2'
+                                              ? 'C2 (Non-Domestic)'
+                                              : t,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedInstallationType = val;
+                                    _selectedSubCategory = null;
+                                    _selectedBlockOption = null;
+                                    _selectedLoadType = null;
+                                    _selectedLoadSubOption = null;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              // Sub category
+                              if (_selectedInstallationType != null)
+                                DropdownButtonFormField<String>(
+                                  initialValue: _selectedSubCategory,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Sub Category',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  hint: const Text('Select sub category'),
+                                  items:
+                                      (_subCategories[_selectedInstallationType] ??
+                                              [])
+                                          .map(
+                                            (s) => DropdownMenuItem(
+                                              value: s,
+                                              child: Text(s),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedSubCategory = val;
+                                      _selectedBlockOption = null;
+                                      _selectedLoadType = null;
+                                      _selectedLoadSubOption = null;
+                                    });
+                                  },
+                                ),
+                              const SizedBox(height: 12),
+                              // Block option only when C1 → Blocks of living units
+                              if (_selectedSubCategory ==
+                                  'Blocks of living units')
+                                DropdownButtonFormField<String>(
+                                  initialValue: _selectedBlockOption,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Block Option',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  hint: const Text('Select block option'),
+                                  items: _blockOptions
+                                      .map(
+                                        (s) => DropdownMenuItem(
+                                          value: s,
+                                          child: Text(s),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedBlockOption = val;
+                                    });
+                                  },
+                                ),
+                              const SizedBox(height: 12),
+                              // Load group (depends on installation type)
+                              if (_selectedInstallationType != null)
+                                DropdownButtonFormField<String>(
+                                  initialValue: _selectedLoadType,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Load Group',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  hint: const Text('Select load group'),
+                                  items:
+                                      (_loadTypes[_selectedInstallationType] ??
+                                              {})
+                                          .keys
+                                          .map(
+                                            (k) => DropdownMenuItem(
+                                              value: k,
+                                              child: Text(k),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedLoadType = val;
+                                      _selectedLoadSubOption = null;
+                                    });
+                                  },
+                                ),
+                              const SizedBox(height: 12),
+                              // Load sub-option
+                              if (_selectedLoadType != null)
+                                DropdownButtonFormField<String>(
+                                  isExpanded: true,
+                                  initialValue: _selectedLoadSubOption,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Load Sub-option',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  hint: const Text('Select sub option'),
+                                  items:
+                                      ((_loadTypes[_selectedInstallationType] ??
+                                                  {})[_selectedLoadType] ??
+                                              [])
+                                          .map(
+                                            (s) => DropdownMenuItem(
+                                              value: s,
+                                              child: Text(s),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedLoadSubOption = val;
+                                    });
+                                    // Show info popup for C2 → H on selection
+                                    if (_selectedInstallationType == 'C2' &&
+                                        _selectedLoadType ==
+                                            'H: Welding machines' &&
+                                        _selectedLoadSubOption != null) {
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            showDialog<void>(
+                                              context: context,
+                                              builder: (_) => const AlertDialog(
+                                                title: Text('Information'),
+                                                content: Text(
+                                                  'Refer to paragraph C2 5.2',
+                                                ),
+                                              ),
+                                            );
+                                          });
+                                    }
+                                  },
+                                ),
+                              // Removed sub-option helper text under the load sub group box per request
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _diversityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Diversity Factor',
+                          hintText: 'e.g. 0.8',
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Text(
+                                'Phase Current Values (A)',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  PhaseInputField(
+                                    controller: _phaseControllers[0],
+                                    phaseNumber: 1,
+                                    phaseLabel: _phaseLabelText(1),
+                                    readOnly:
+                                        (_actionForSelection() !=
+                                                _DialogAction.none &&
+                                            _actionForSelection() !=
+                                                _DialogAction.showInfoOnly) ||
+                                        _isBlocksALightsNoAssessment(),
+                                    onTap:
+                                        _actionForSelection() ==
+                                            _DialogAction.showInfoOnly
+                                        ? () => _onPhaseTap(1)
+                                        : (_actionForSelection() !=
+                                                  _DialogAction.none
+                                              ? () => _onPhaseTap(1)
+                                              : null),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  PhaseInputField(
+                                    controller: _phaseControllers[1],
+                                    phaseNumber: 2,
+                                    phaseLabel: _phaseLabelText(2),
+                                    readOnly:
+                                        (_actionForSelection() !=
+                                                _DialogAction.none &&
+                                            _actionForSelection() !=
+                                                _DialogAction.showInfoOnly) ||
+                                        _isBlocksALightsNoAssessment(),
+                                    onTap:
+                                        _actionForSelection() ==
+                                            _DialogAction.showInfoOnly
+                                        ? () => _onPhaseTap(2)
+                                        : (_actionForSelection() !=
+                                                  _DialogAction.none
+                                              ? () => _onPhaseTap(2)
+                                              : null),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  PhaseInputField(
+                                    controller: _phaseControllers[2],
+                                    phaseNumber: 3,
+                                    phaseLabel: _phaseLabelText(3),
+                                    readOnly:
+                                        (_actionForSelection() !=
+                                                _DialogAction.none &&
+                                            _actionForSelection() !=
+                                                _DialogAction.showInfoOnly) ||
+                                        _isBlocksALightsNoAssessment(),
+                                    onTap:
+                                        _actionForSelection() ==
+                                            _DialogAction.showInfoOnly
+                                        ? () => _onPhaseTap(3)
+                                        : (_actionForSelection() !=
+                                                  _DialogAction.none
+                                              ? () => _onPhaseTap(3)
+                                              : null),
+                                  ),
+                                ],
+                              ),
+                              if (_isSingleDomesticBPoints()) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Points-based rule: 10 A for 1–20 points; +5 A per additional 20 points or part thereof.',
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(color: Colors.black54),
-                                );
-                              },
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _saveLoadEntry,
-                                  child: const Text('Next Load'),
                                 ),
+                                const SizedBox(height: 4),
+                                Builder(
+                                  builder: (context) {
+                                    final p1 =
+                                        int.tryParse(
+                                          _phaseControllers[0].text,
+                                        ) ??
+                                        0;
+                                    final p2 =
+                                        int.tryParse(
+                                          _phaseControllers[1].text,
+                                        ) ??
+                                        0;
+                                    final p3 =
+                                        int.tryParse(
+                                          _phaseControllers[2].text,
+                                        ) ??
+                                        0;
+                                    return Text(
+                                      'Preview — P1: ${_bPointsPreview(p1)} • P2: ${_bPointsPreview(p2)} • P3: ${_bPointsPreview(p3)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: Colors.black54),
+                                    );
+                                  },
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: _saveLoadEntry,
+                                      child: const Text('Next Load'),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Results',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              for (var i = 0; i < 3; i++) ...[
-                                if (i > 0) const SizedBox(width: 16),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _resultPhaseControllers[i],
-                                    decoration: InputDecoration(
-                                      labelText: 'Phase ${i + 1} Result (A)',
-                                    ),
-                                    readOnly: true,
-                                  ),
+                              const Text(
+                                'Results',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  for (var i = 0; i < 3; i++) ...[
+                                    if (i > 0) const SizedBox(width: 16),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: _resultPhaseControllers[i],
+                                        decoration: InputDecoration(
+                                          labelText:
+                                              'Phase ${i + 1} Result (A)',
+                                        ),
+                                        readOnly: true,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (_loadEntries.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Load Summary',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _loadEntries.length,
-                              itemBuilder: (context, index) {
-                                final e = _loadEntries[index];
-                                return ListTile(
-                                  title: Text(e.name),
-                                  subtitle: Text(
-                                    [
-                                          e.installationType,
-                                          e.subCategory,
-                                          e.blockOption,
-                                          e.group,
-                                          e.detail,
-                                        ]
-                                        .whereType<String>()
-                                        .where((s) => s.isNotEmpty)
-                                        .join(' • '),
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        'P1: ${e.phase1.toStringAsFixed(2)} A\nP2: ${e.phase2.toStringAsFixed(2)} A\nP3: ${e.phase3.toStringAsFixed(2)} A',
-                                        textAlign: TextAlign.right,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        tooltip: 'Delete',
-                                        icon: const Icon(Icons.delete_outline),
-                                        onPressed: () {
-                                          setState(() {
-                                            _loadEntries.removeAt(index);
-                                            // Recompute totals if currently shown
-                                            if (_totalP1 != null ||
-                                                _totalP2 != null ||
-                                                _totalP3 != null) {
-                                              // Defer to after setState microtask to ensure list updated
-                                            }
-                                          });
-                                          if (_totalP1 != null ||
-                                              _totalP2 != null ||
-                                              _totalP3 != null) {
-                                            _computeMaximumDemand();
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: _loadEntries.isEmpty
-                                      ? null
-                                      : _computeMaximumDemand,
-                                  icon: const Icon(Icons.summarize),
-                                  label: const Text('Maximum Demand'),
-                                ),
-                                const SizedBox(width: 12),
-                                ElevatedButton.icon(
-                                  onPressed: _loadEntries.isEmpty
-                                      ? null
-                                      : _exportToPdf,
-                                  icon: const Icon(Icons.picture_as_pdf),
-                                  label: const Text('Export PDF'),
-                                ),
-                              ],
-                            ),
-                          ],
                         ),
                       ),
-                    ),
-                  ],
-                  if (_totalP1 != null ||
-                      _totalP2 != null ||
-                      _totalP3 != null) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
+                      if (_loadEntries.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Expanded(
-                                  child: Text(
-                                    'Maximum Demand Total',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                                const Text(
+                                  'Load Summary',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: _loadEntries.length,
+                                  itemBuilder: (context, index) {
+                                    final e = _loadEntries[index];
+                                    return ListTile(
+                                      title: Text(e.name),
+                                      subtitle: Text(
+                                        [
+                                              e.installationType,
+                                              e.subCategory,
+                                              e.blockOption,
+                                              e.group,
+                                              e.detail,
+                                            ]
+                                            .whereType<String>()
+                                            .where((s) => s.isNotEmpty)
+                                            .join(' • '),
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'P1: ${e.phase1.toStringAsFixed(2)} A\nP2: ${e.phase2.toStringAsFixed(2)} A\nP3: ${e.phase3.toStringAsFixed(2)} A',
+                                            textAlign: TextAlign.right,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            tooltip: 'Delete',
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _loadEntries.removeAt(index);
+                                                // Recompute totals if currently shown
+                                                if (_totalP1 != null ||
+                                                    _totalP2 != null ||
+                                                    _totalP3 != null) {
+                                                  // Defer to after setState microtask to ensure list updated
+                                                }
+                                              });
+                                              if (_totalP1 != null ||
+                                                  _totalP2 != null ||
+                                                  _totalP3 != null) {
+                                                _computeMaximumDemand();
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: _loadEntries.isEmpty
+                                          ? null
+                                          : _computeMaximumDemand,
+                                      icon: const Icon(Icons.summarize),
+                                      label: const Text('Maximum Demand'),
                                     ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: _clearMaximumDemand,
-                                  child: const Text('Clear totals'),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Phase 1: ${(_totalP1 ?? 0).toStringAsFixed(2)} A',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    'Phase 2: ${(_totalP2 ?? 0).toStringAsFixed(2)} A',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    'Phase 3: ${(_totalP3 ?? 0).toStringAsFixed(2)} A',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
+                                    const SizedBox(width: 12),
+                                    ElevatedButton.icon(
+                                      onPressed: _loadEntries.isEmpty
+                                          ? null
+                                          : _exportToPdf,
+                                      icon: const Icon(Icons.picture_as_pdf),
+                                      label: const Text('Export PDF'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ],
+                      ],
+                      if (_totalP1 != null ||
+                          _totalP2 != null ||
+                          _totalP3 != null) ...[
+                        const SizedBox(height: 16),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Maximum Demand Total',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _clearMaximumDemand,
+                                      child: const Text('Clear totals'),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Phase 1: ${(_totalP1 ?? 0).toStringAsFixed(2)} A',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        'Phase 2: ${(_totalP2 ?? 0).toStringAsFixed(2)} A',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        'Phase 3: ${(_totalP3 ?? 0).toStringAsFixed(2)} A',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          if (_isBannerAdReady && _bannerAd != null)
+            Container(
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
+        ],
       ),
     );
   }

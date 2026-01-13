@@ -74,9 +74,9 @@ class _SpaPoolDialogState extends State<SpaPoolDialog> {
           onPressed: () {
             final spas = _parseList(_spaController.text);
             final pools = _parseList(_poolController.text);
-            Navigator.of(context).pop(
-              SpaPoolConfig(spaHeaters: spas, poolHeaters: pools),
-            );
+            Navigator.of(
+              context,
+            ).pop(SpaPoolConfig(spaHeaters: spas, poolHeaters: pools));
           },
           child: const Text('OK'),
         ),

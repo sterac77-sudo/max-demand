@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 import 'load_entry_screen.dart';
+import 'services/ad_manager.dart';
+import 'services/subscription_manager.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize AdMob and subscription services
+  await AdManager().initialize();
+  await SubscriptionManager().initialize();
+
+  // Preload first interstitial ad
+  await AdManager().loadInterstitialAd();
+
   runApp(const MaxDemandCalculatorApp());
 }
 

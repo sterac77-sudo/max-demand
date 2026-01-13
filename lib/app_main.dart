@@ -13,8 +13,29 @@ class MaxDemandCalculatorApp extends StatelessWidget {
     return MaterialApp(
       title: 'Maximum Demand Calculator',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0xFF00B4D8),
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: const Color(0xFF1B263B),
+        cardColor: Colors.white,
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Color(0xFFF1F6FB),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Color(0xFF00B4D8)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Color(0xFF00B4D8), width: 2),
+          ),
+          labelStyle: TextStyle(color: Color(0xFF0077B6)),
+        ),
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF00B4D8)),
+          bodyMedium: TextStyle(fontSize: 16, color: Color(0xFF22223B)),
+        ),
       ),
       home: const LoadEntryScreen(),
     );

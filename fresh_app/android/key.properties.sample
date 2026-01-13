@@ -4,6 +4,6 @@
 storePassword=your-keystore-password
 keyPassword=your-key-password
 keyAlias=upload
-# Path is resolved RELATIVE TO the android/ directory (rootProject in Gradle).
-# If your JKS is at fresh_app/android/upload-keystore.jks, use:
-storeFile=upload-keystore.jks
+# Path is resolved RELATIVE TO android/app/ directory (where build.gradle.kts uses file()).
+# Since the JKS is at android/upload-keystore.jks, use:
+storeFile=../upload-keystore.jks

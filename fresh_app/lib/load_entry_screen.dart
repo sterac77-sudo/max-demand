@@ -9,6 +9,10 @@ import 'spa_pool_dialog.dart';
 import 'appliance_dialog.dart';
 import 'socket_outlet_dialog.dart';
 import 'analytics.dart';
+import 'services/ad_manager.dart';
+import 'services/subscription_manager.dart';
+import 'widgets/banner_ad_widget.dart';
+import 'widgets/premium_dialog.dart';
 
 // Private enum for UI action routing (top-level)
 enum _DialogAction {
@@ -539,6 +543,10 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   void _saveLoadEntry() {
     // Ensure results are up to date
     _calculateDemand();
+
+    // Show interstitial ad when adding a load (every 3rd time for free users)
+    AdManager().onCalculationCompleted();
+
     double p1 = double.tryParse(_resultPhaseControllers[0].text) ?? 0.0;
     double p2 = double.tryParse(_resultPhaseControllers[1].text) ?? 0.0;
     double p3 = double.tryParse(_resultPhaseControllers[2].text) ?? 0.0;
@@ -577,6 +585,9 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   }
 
   void _computeMaximumDemand() {
+    // Show interstitial ad when computing maximum demand (every 3rd time for free users)
+    AdManager().onCalculationCompleted();
+
     double p1 = 0.0, p2 = 0.0, p3 = 0.0;
     for (final e in _loadEntries) {
       p1 += e.phase1;
@@ -1325,6 +1336,18 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
   }
 
   Future<void> _exportToPdf() async {
+    // Check if user is premium
+    final subscriptionManager = SubscriptionManager();
+    if (!subscriptionManager.isPremium) {
+      // Show premium dialog
+      final upgraded = await PremiumDialog.show(context);
+      if (!upgraded) {
+        // User declined or cancelled
+        return;
+      }
+      // If upgraded, continue with export
+    }
+
     // Track export action (web only; no-op if analytics not configured)
     Analytics.event('export_pdf');
     // Build a PDF report from current load entries and totals
@@ -2009,6 +2032,10 @@ class _LoadEntryScreenState extends State<LoadEntryScreen> {
                       ),
                     ),
                   ],
+                  // Banner ad at the bottom
+                  const SizedBox(height: 16),
+                  const BannerAdWidget(),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

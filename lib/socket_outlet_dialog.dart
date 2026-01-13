@@ -52,7 +52,9 @@ class _SocketOutletDialogState extends State<SocketOutletDialog> {
           children: [
             TextFormField(
               controller: _largestController,
-              decoration: const InputDecoration(labelText: 'Highest-rated socket (A)'),
+              decoration: const InputDecoration(
+                labelText: 'Highest-rated socket (A)',
+              ),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
